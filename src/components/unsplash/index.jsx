@@ -7,6 +7,9 @@ import "./style.css";
 const client = createClient('563492ad6f9170000100000191ca2aaceae24568876d1777e39ef44c');
 
 let counter = 0;
+const img = new Image();
+
+let offsetX, offsetY;
 
 const Loader = () => {
   return <div className="loader-container">
@@ -14,9 +17,9 @@ const Loader = () => {
     </div>;
 };
 
-const PexelsImage = ({ url, key }) => (
+const PexelsImage = ({ url, key, dragStart, dragEnd, onClick, onMouseDown }) => (
   <div className="image-item" key={key} >
-    <img src={url} />
+    <img onMouseDown={onMouseDown} onClick={onClick} onDragStart={dragStart} onDragEnd={dragEnd} draggable="true" src={url} />
   </div>
 );
 
@@ -28,6 +31,7 @@ export const Collage = () => {
 
   useEffect(() => {
     fetchImages();
+    handleEvents();
   }, []);
 
   useEffect(() => {
@@ -39,8 +43,15 @@ export const Collage = () => {
     fetchImages({ query });
   }, [query]);
 
+  const handleEvents = () => {
+    // document.addEventListener("dragleave", onDragLeave, false);
+    document.addEventListener("dragover", (e) => {
+        e.preventDefault();
+    });
+  };
+
   const fetchImages = (payload) => {
-    const { count = 5, query = "" } = payload || {};
+    const { count = 10, query = "" } = payload || {};
 
     if (query) {
       client.photos.search({ query, page: ++counter, per_page: count }).then(res => {
@@ -59,6 +70,63 @@ export const Collage = () => {
     setQuery(event.target.value);
   };
 
+  function toDataURL(src, callback, clicked){
+    var image = new Image();
+    image.crossOrigin = 'Anonymous';
+    image.onload = function(){
+       var canvas = document.createElement('canvas');
+       var context = canvas.getContext('2d');
+       canvas.height = this.naturalHeight;
+       canvas.width = this.naturalWidth;
+       context.drawImage(this, 0, 0);
+       var dataURL = canvas.toDataURL('image/jpeg');
+       callback(dataURL, clicked);
+    };
+    image.src = src;
+ }
+
+ const callback = (dataURI, clicked) => {
+  window.parent.postMessage({
+    msgType: clicked ? "clicked" : "dragStart",
+    dataURI,
+    offset: {
+      x: offsetX,
+      y: offsetY
+    }
+  }, "*");
+}
+
+
+const handleMouseDown = (event) => {
+  console.log(event.offsetX, event.offsetY);
+};
+
+  const onDragLeave = (event) => {
+    const url = event.srcElement.src;
+
+    toDataURL(url, callback);
+  };
+
+  const handleImageClick = (event) => {
+    const url = event.currentTarget.src;
+
+    toDataURL(url, callback, true);
+  };
+
+  const onDragStart = (event) => {
+    const url = event.currentTarget.src;
+
+    offsetX = event.nativeEvent.offsetX;
+    offsetY = event.nativeEvent.offsetY;
+
+    toDataURL(url, callback);
+
+    event.dataTransfer.setDragImage(img, 0, 0);
+  };
+  
+  const onDragEnd = () => {
+  };
+
   const searchOnChangeDebounced = debounce(searchOnChange, 400);
 
   return (
@@ -66,11 +134,11 @@ export const Collage = () => {
       <div className="hero-body">
         <div className="container">
           <div className="header content">
-            <input placeholder="Search" className="search" onChange={searchOnChangeDebounced}></input>
+            <input placeholder="Try Cats or Dogs" className="search" onChange={searchOnChangeDebounced}></input>
           </div>
           <InfiniteScroll
             dataLength={resData.photos ? resData.photos.length : 0}
-            next={() => fetchImages({ count: 5, query })}
+            next={() => fetchImages({ count: 10, query })}
             hasMore={resData.total_results > resData.page * resData.per_page}
             loader={resData.photos && resData.photos.length ? <Loader/> : null}
             scrollThreshold={0.95}
@@ -81,7 +149,10 @@ export const Collage = () => {
                   <Fragment key={index}>
                     <PexelsImage
                       url={image.src.medium}
-                      key={index}
+                      onMouseDown={handleMouseDown}
+                      onClick={handleImageClick}
+                      dragStart={onDragStart}
+                      dragEnd={onDragEnd}
                     />
                   </Fragment>
                 )) : <Loader />
