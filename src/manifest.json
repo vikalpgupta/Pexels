@@ -29,7 +29,8 @@
             "defaultSize": {
                 "width": 300,
                 "height": 625
-            }
+            },
+            "sandbox": ["allow-scripts", "allow-same-origin"]
         }
     ]
 }

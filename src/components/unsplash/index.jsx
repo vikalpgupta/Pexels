@@ -17,9 +17,9 @@ const Loader = () => {
     </div>;
 };
 
-const PexelsImage = ({ url, key, dragStart, dragEnd, onClick, onMouseDown }) => (
+const PexelsImage = ({ url, key, dragStart, dragEnd, onClick }) => (
   <div className="image-item" key={key} >
-    <img onMouseDown={onMouseDown} onClick={onClick} onDragStart={dragStart} onDragEnd={dragEnd} draggable="true" src={url} />
+    <img onClick={onClick} onDragStart={dragStart} onDragEnd={dragEnd} draggable="true" src={url} />
   </div>
 );
 
@@ -96,11 +96,6 @@ export const Collage = () => {
   }, "*");
 }
 
-
-const handleMouseDown = (event) => {
-  console.log(event.offsetX, event.offsetY);
-};
-
   const onDragLeave = (event) => {
     const url = event.srcElement.src;
 
@@ -114,12 +109,14 @@ const handleMouseDown = (event) => {
   };
 
   const onDragStart = (event) => {
+    const height = event.currentTarget.height;
+    const width = event.currentTarget.width;
     const url = event.currentTarget.src;
 
     offsetX = event.nativeEvent.offsetX;
     offsetY = event.nativeEvent.offsetY;
 
-    toDataURL(url, callback);
+    toDataURL(url.replace("&h=350", `&h=${height}&w=${width}`), callback);
 
     event.dataTransfer.setDragImage(img, 0, 0);
   };
@@ -149,7 +146,6 @@ const handleMouseDown = (event) => {
                   <Fragment key={index}>
                     <PexelsImage
                       url={image.src.medium}
-                      onMouseDown={handleMouseDown}
                       onClick={handleImageClick}
                       dragStart={onDragStart}
                       dragEnd={onDragEnd}
